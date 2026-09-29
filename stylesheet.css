@@ -1,0 +1,17 @@
+.app-volume-row {
+  spacing: 10px;
+  min-width: 390px;
+}
+
+.app-volume-icon-button {
+  padding: 2px;
+  border-radius: 999px;
+}
+
+.app-volume-icon {
+  icon-size: 16px;
+}
+
+.app-volume-label {
+  width: 120px;
+}

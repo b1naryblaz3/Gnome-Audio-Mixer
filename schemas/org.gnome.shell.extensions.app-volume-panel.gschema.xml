@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <schema id="org.gnome.shell.extensions.app-volume-panel" path="/org/gnome/shell/extensions/app-volume-panel/">
+    <key name="app-volumes" type="a{sd}">
+      <default>{}</default>
+      <summary>Remembered application volume levels</summary>
+      <description>Stores per-application volume levels keyed by the resolved application identity.</description>
+    </key>
+  </schema>
+</schemalist>

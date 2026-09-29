@@ -1,0 +1,11 @@
+{
+  "uuid": "app-volume-panel-v4@appvol.local",
+  "name": "App Volume Panel Mixer",
+  "description": "Compact grouped per-application volume controls in the GNOME top panel.",
+  "shell-version": [
+    "49",
+    "50"
+  ],
+  "settings-schema": "org.gnome.shell.extensions.app-volume-panel",
+  "version": 422
+}
