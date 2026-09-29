@@ -4,6 +4,14 @@ A compact GNOME Shell top-panel mixer for per-application audio control.
 
 Current stable development baseline: **v4.2.2**.
 
+![GNOME App Volume Panel Mixer screenshot](docs/screenshot.png)
+
+## Development credits
+
+This project was **vibe-coded collaboratively by [b1naryblaz3](https://github.com/b1naryblaz3) and ChatGPT (OpenAI)**.
+
+ChatGPT assisted with architecture, implementation, debugging, API review, and code review. b1naryblaz3 directed the project, chose the product behaviour, and tested it on a real GNOME Shell 50.4 / CachyOS Wayland system.
+
 ## Features
 
 - Native GNOME top-panel indicator and popup
