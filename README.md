@@ -4,7 +4,7 @@ A compact GNOME Shell top-panel mixer for per-application audio control.
 
 Current stable development baseline: **v4.2.2**.
 
-![GNOME App Volume Panel Mixer screenshot](docs/screenshot.png)
+![GNOME App Volume Panel Mixer screenshot](https://raw.githubusercontent.com/b1naryblaz3/Gnome-Audio-Mixer/main/docs/screenshot.png)
 
 ## Development credits
 
