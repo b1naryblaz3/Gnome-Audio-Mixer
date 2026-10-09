@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.1.0 - Unreleased
+## 1.1.0 - 2026-10-10
 
 - Moved preset setup into one collapsed Output switcher settings section below the volume controls.
 - Removed the redundant Switch output row; right-click switching and the panel indicator remain.
