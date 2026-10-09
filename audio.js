@@ -4,6 +4,8 @@ import GLib from 'gi://GLib';
 
 import * as Volume from 'resource:///org/gnome/shell/ui/status/volume.js';
 
+import {quickOutputState} from './outputs.js';
+
 const METADATA_DELAY_MS = 150;
 const METADATA_TIMEOUT_MS = 1500;
 const STORE_SAVE_DELAY_MS = 300;
@@ -211,6 +213,7 @@ class VolumeStore {
 export class MixerModel {
     constructor(settings) {
         this.control = Volume.getMixerControl();
+        this._settings = settings;
         this._soundSettings = new Gio.Settings({schema_id: 'org.gnome.desktop.sound'});
         this._store = new VolumeStore(settings);
         this._metadata = new Map();
@@ -234,8 +237,15 @@ export class MixerModel {
             'stream-removed', () => this._queueMetadata(),
             'default-sink-changed', () => this._render(),
             'default-source-changed', () => this._render(),
+            'output-added', () => this._render(),
+            'output-removed', () => this._render(),
+            'active-output-update', () => this._render(),
             this
         );
+        this._settings.connectObject(
+            'changed::quick-output-names', () => this._render(),
+            'changed::quick-output-labels', () => this._render(),
+            this);
         this._soundSettings.connectObject(
             `changed::${ALLOW_AMPLIFIED_KEY}`, () => this._render(), this);
         this._queueMetadata(true);
@@ -243,6 +253,58 @@ export class MixerModel {
 
     rememberVolume(key, value) {
         this._store.set(key, value);
+    }
+
+    _outputs() {
+        return this.control.get_sinks().map(stream => ({
+            name: text(stream.get_name()),
+            label: text(stream.get_description()) || text(stream.get_name()),
+            stream,
+        })).filter(output => output.name)
+            .sort((a, b) => a.label.localeCompare(b.label));
+    }
+
+    _quickOutputs(outputs) {
+        return quickOutputState(outputs,
+            this._settings.get_strv('quick-output-names'),
+            this._settings.get_strv('quick-output-labels'),
+            text(this.control.get_default_sink()?.get_name()));
+    }
+
+    selectOutputPreset(slot, name) {
+        if (slot !== 0 && slot !== 1)
+            return;
+        const output = this._outputs().find(candidate => candidate.name === name);
+        if (name && !output)
+            return;
+        const savedNames = this._settings.get_strv('quick-output-names');
+        const savedLabels = this._settings.get_strv('quick-output-labels');
+        const names = [0, 1].map(index => savedNames[index] ?? '');
+        const labels = [0, 1].map(index => savedLabels[index] ?? '');
+        names[slot] = name;
+        labels[slot] = output?.label ?? '';
+        // A device cannot occupy both slots. Selecting it moves it here.
+        if (name && names[1 - slot] === name) {
+            names[1 - slot] = '';
+            labels[1 - slot] = '';
+        }
+        this._settings.set_strv('quick-output-labels', labels);
+        this._settings.set_strv('quick-output-names', names);
+    }
+
+    switchOutput() {
+        // Resolve again at click time in case a device has disconnected.
+        const outputs = this._outputs();
+        const state = this._quickOutputs(outputs);
+        if (!state.canSwitch)
+            return false;
+        const target = outputs.find(output =>
+            output.name === state.presets[state.targetSlot].name);
+        const device = this.control.lookup_device_from_stream(target.stream);
+        if (!device)
+            return false;
+        this.control.change_output(device);
+        return true;
     }
 
     _maximum() {
@@ -554,11 +616,14 @@ export class MixerModel {
         const groups = this._groups(this._appStreams());
         const maximum = this._maximum();
         this._restoreNewStreams(groups, maximum);
+        const outputs = this._outputs();
         this._onChanged({
             sink: this.control.get_default_sink(),
             source: this.control.get_default_source(),
             groups,
             maximum,
+            outputs,
+            quickOutputs: this._quickOutputs(outputs),
         });
     }
 
@@ -586,6 +651,7 @@ export class MixerModel {
         this._metadataPending = false;
 
         this.control.disconnectObject(this);
+        this._settings.disconnectObject(this);
         this._soundSettings.disconnectObject(this);
         this._store.destroy();
 
@@ -594,5 +660,6 @@ export class MixerModel {
         this._store = null;
         this._soundSettings = null;
         this.control = null;
+        this._settings = null;
     }
 }

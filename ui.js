@@ -18,6 +18,7 @@ import {
 
 const MASTER_SCROLL_STEP = 0.05;
 const PRIMARY_BUTTON = Clutter.BUTTON_PRIMARY ?? 1;
+const SECONDARY_BUTTON = Clutter.BUTTON_SECONDARY ?? 3;
 const MIDDLE_BUTTON = Clutter.BUTTON_MIDDLE ?? 2;
 const PRIMARY_BUTTON_MASK = St.ButtonMask.PRIMARY ?? St.ButtonMask.ONE;
 const MIDDLE_BUTTON_MASK = St.ButtonMask.MIDDLE ?? St.ButtonMask.TWO;
@@ -142,14 +143,17 @@ class VolumeRow extends PopupMenu.PopupBaseMenuItem {
 
 export const MixerButton = GObject.registerClass(
 class MixerButton extends PanelMenu.Button {
-    _init(control, onAppVolumeChanged) {
+    _init(control, onAppVolumeChanged, onSwitchOutput, onSelectOutputPreset) {
         super._init(0.0, 'App Volume Mixer', false);
 
         this._control = control;
         this._onAppVolumeChanged = onAppVolumeChanged;
+        this._onSwitchOutput = onSwitchOutput;
+        this._onSelectOutputPreset = onSelectOutputPreset;
         this._master = null;
         this._maximum = 1;
         this._middleClickGesture = null;
+        this._outputClickGesture = null;
         this._scrollController = null;
 
         // GNOME 50+ uses a ClickGesture internally. Restrict the built-in
@@ -165,13 +169,26 @@ class MixerButton extends PanelMenu.Button {
                 toggleStreamMute(this._master, this._control);
             });
             this.add_action(this._middleClickGesture);
+            this._outputClickGesture = new Clutter.ClickGesture();
+            this._outputClickGesture.set_required_button(SECONDARY_BUTTON);
+            this._outputClickGesture.set_recognize_on_press(true);
+            this._outputClickGesture.connect('recognize', () => this._onSwitchOutput());
+            this.add_action(this._outputClickGesture);
         }
 
         this._panelIcon = new St.Icon({
             icon_name: 'audio-volume-high-symbolic',
             style_class: 'system-status-icon',
         });
-        this.add_child(this._panelIcon);
+        this._presetLabel = new St.Label({
+            text: '–',
+            style_class: 'app-volume-preset-number',
+            y_align: Clutter.ActorAlign.CENTER,
+        });
+        const panelBox = new St.BoxLayout({style_class: 'app-volume-panel-box'});
+        panelBox.add_child(this._panelIcon);
+        panelBox.add_child(this._presetLabel);
+        this.add_child(panelBox);
         this._setupScrollHandling();
     }
 
@@ -200,6 +217,10 @@ class MixerButton extends PanelMenu.Button {
         if (!this._middleClickGesture &&
             event.type() === Clutter.EventType.BUTTON_PRESS) {
             const button = event.get_button();
+            if (button === SECONDARY_BUTTON) {
+                this._onSwitchOutput();
+                return Clutter.EVENT_STOP;
+            }
             if (button === MIDDLE_BUTTON) {
                 toggleStreamMute(this._master, this._control);
                 return Clutter.EVENT_STOP;
@@ -284,10 +305,61 @@ class MixerButton extends PanelMenu.Button {
             this._panelIcon.icon_name = 'audio-volume-high-symbolic';
     }
 
-    rebuild({sink, source, groups, maximum}) {
+    _addQuickOutputs(outputs, {presets, targetSlot, canSwitch}) {
+        const target = presets[targetSlot];
+        const configured = presets.every(preset => preset.name);
+        const switchItem = new PopupMenu.PopupMenuItem(configured
+            ? `Switch output → ${target.label}${target.available ? '' : ' (disconnected)'}`
+            : 'Switch output — choose two presets below');
+        switchItem.label.clutter_text.ellipsize = Pango.EllipsizeMode.END;
+        switchItem.label.add_style_class_name('app-volume-output-label');
+        switchItem.setSensitive(canSwitch);
+        switchItem.connect('activate', () => this._onSwitchOutput());
+        this.menu.addMenuItem(switchItem);
+
+        const setup = new PopupMenu.PopupSubMenuMenuItem('Quick-switch presets');
+        this.menu.addMenuItem(setup);
+        for (const slot of [0, 1]) {
+            const preset = presets[slot];
+            const status = preset.active ? ' (active)'
+                : preset.name && !preset.available ? ' (disconnected)' : '';
+            const picker = new PopupMenu.PopupSubMenuMenuItem(
+                `${slot + 1}: ${preset.label}${status}`);
+            picker.label.clutter_text.ellipsize = Pango.EllipsizeMode.END;
+            picker.label.add_style_class_name('app-volume-output-label');
+            setup.menu.addMenuItem(picker);
+            for (const output of outputs) {
+                const item = new PopupMenu.PopupMenuItem(output.label);
+                item.label.clutter_text.ellipsize = Pango.EllipsizeMode.END;
+                item.label.add_style_class_name('app-volume-output-label');
+                item.setOrnament(output.name === preset.name
+                    ? PopupMenu.Ornament.CHECK : PopupMenu.Ornament.NONE);
+                item.connect('activate', () =>
+                    this._onSelectOutputPreset(slot, output.name));
+                picker.menu.addMenuItem(item);
+            }
+            if (!outputs.length) {
+                picker.menu.addMenuItem(new PopupMenu.PopupMenuItem(
+                    'No outputs connected', {reactive: false, can_focus: false}));
+            }
+            const clear = new PopupMenu.PopupMenuItem('Clear preset');
+            clear.setSensitive(Boolean(preset.name));
+            clear.connect('activate', () => this._onSelectOutputPreset(slot, ''));
+            picker.menu.addMenuItem(clear);
+        }
+        this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
+    }
+
+    rebuild({sink, source, groups, maximum, outputs, quickOutputs}) {
         this._maximum = maximum;
         this._setMaster(sink);
         this.menu.removeAll();
+        const activeSlot = quickOutputs.presets.findIndex(preset => preset.active);
+        this._presetLabel.text = activeSlot < 0 ? '–' : String(activeSlot + 1);
+        this.accessible_name = activeSlot < 0
+            ? 'App Volume Mixer. Right-click to switch output presets.'
+            : `App Volume Mixer. Output ${activeSlot + 1}: ${quickOutputs.presets[activeSlot].label}. Right-click to switch output.`;
+        this._addQuickOutputs(outputs, quickOutputs);
 
         const addRow = params => this.menu.addMenuItem(new VolumeRow({
             control: this._control,
@@ -317,8 +389,11 @@ class MixerButton extends PanelMenu.Button {
         this._master?.disconnectObject(this);
         this._master = null;
         this._middleClickGesture = null;
+        this._outputClickGesture = null;
         this._scrollController = null;
         this._onAppVolumeChanged = null;
+        this._onSwitchOutput = null;
+        this._onSelectOutputPreset = null;
         super.destroy();
     }
 });
