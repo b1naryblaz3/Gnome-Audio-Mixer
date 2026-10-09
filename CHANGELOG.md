@@ -1,5 +1,20 @@
 # Changelog
 
+## 5.1.1 - Preset selector fix
+
+- Moved preset selectors to the top-level mixer menu. GNOME tracks one open submenu per main menu, so nested selectors closed their parent and could not be used.
+- Added menu layout and selection callback regression checks.
+
+
+## 5.1.0 - Output quick switch
+
+- Added two persistent output presets, configurable from the top of the mixer popup.
+- Added a top-of-menu action to flip between the selected outputs.
+- Added right-click output switching and a small 1 / 2 panel indicator.
+- Kept left-click menu opening, middle-click mute and scroll volume controls.
+- Remembered disconnected device labels and disabled unavailable switch targets.
+- Used stable sink names instead of session-specific device IDs.
+
 ## 5.0.0 - GNOME Shell 51 compatibility
 
 - Added GNOME Shell 51 to the supported shell versions.

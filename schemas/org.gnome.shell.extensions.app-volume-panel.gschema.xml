@@ -1,6 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schemalist>
   <schema id="org.gnome.shell.extensions.app-volume-panel" path="/org/gnome/shell/extensions/app-volume-panel/">
+    <key name="quick-output-names" type="as">
+      <default>['', '']</default>
+      <summary>Quick-switch output presets 1 and 2</summary>
+      <description>Persistent PulseAudio/PipeWire sink names for the two selected outputs.</description>
+    </key>
+    <key name="quick-output-labels" type="as">
+      <default>['', '']</default>
+      <summary>Last known output preset labels</summary>
+      <description>Retains readable device labels while a selected output is disconnected.</description>
+    </key>
     <key name="app-volumes" type="a{sd}">
       <default>{}</default>
       <summary>Remembered application volume levels</summary>

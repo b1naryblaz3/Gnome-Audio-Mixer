@@ -15,3 +15,16 @@
 .app-volume-label {
   width: 120px;
 }
+
+.app-volume-output-label {
+  max-width: 370px;
+}
+
+.app-volume-panel-box {
+  spacing: 4px;
+}
+
+.app-volume-preset-number {
+  font-size: 0.8em;
+  min-width: 8px;
+}

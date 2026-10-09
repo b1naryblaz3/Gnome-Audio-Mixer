@@ -10,7 +10,18 @@ export default class AppVolumePanelExtension extends Extension {
         this._model = new MixerModel(this._settings);
         this._button = new MixerButton(
             this._model.control,
-            (key, value) => this._model.rememberVolume(key, value)
+            (key, value) => this._model.rememberVolume(key, value),
+            () => {
+                try {
+                    if (!this._model.switchOutput())
+                        Main.notify('App Volume Mixer',
+                            'Choose two connected outputs under Preset 1 and Preset 2.');
+                } catch (error) {
+                    console.warn(`App Volume Panel Mixer: output switch failed: ${error}`);
+                    Main.notify('App Volume Mixer', 'Could not switch audio output.');
+                }
+            },
+            (slot, name) => this._model.selectOutputPreset(slot, name)
         );
         Main.panel.addToStatusArea(this.uuid, this._button, 0, 'right');
         this._model.start(state => this._button.rebuild(state));
@@ -24,3 +35,4 @@ export default class AppVolumePanelExtension extends Extension {
         this._settings = null;
     }
 }
+
