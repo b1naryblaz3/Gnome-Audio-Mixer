@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.1.0 - Unreleased
+
+- Moved preset setup into one collapsed Output switcher settings section below the volume controls.
+- Removed the redundant Switch output row; right-click switching and the panel indicator remain.
+- Setup expands automatically until both presets are configured, then collapses.
+- Flat device choices avoid GNOME nested-submenu closing behaviour.
+- Manually expanded settings stay expanded during audio topology refreshes.
+
 ## 1.0.0 - 2026-10-09
 
 First stable public release, based on the tested 5.1.1 development build.
