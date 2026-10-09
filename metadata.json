@@ -8,7 +8,6 @@
     "51"
   ],
   "settings-schema": "org.gnome.shell.extensions.app-volume-panel",
-  "version": 512,
-  "version-name": "1.0.0"
+  "version": 513,
+  "version-name": "1.1.0"
 }
-
