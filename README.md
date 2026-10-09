@@ -6,9 +6,9 @@ A compact GNOME Shell panel mixer with per-application volume controls and one-c
 
 [Download the latest release](https://github.com/b1naryblaz3/Gnome-Audio-Mixer/releases/latest)
 
-![GNOME Audio Mixer — earlier output-switcher layout](docs/screenshot.png)
+![GNOME Audio Mixer v1.1.0 with output switcher settings expanded](docs/screenshot-v1.1.0.png)
 
-*This screenshot shows the earlier layout. In v1.1.0, preset setup is collapsed under **Output switcher settings** at the bottom of the menu.*
+*Output switcher settings expanded for setup. Collapse this section for everyday volume control; right-click the panel icon to switch outputs.*
 
 ## Install or update
 
