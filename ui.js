@@ -17,6 +17,10 @@ import {
 } from './audio.js';
 
 const MASTER_SCROLL_STEP = 0.05;
+const PRIMARY_BUTTON = Clutter.BUTTON_PRIMARY ?? 1;
+const MIDDLE_BUTTON = Clutter.BUTTON_MIDDLE ?? 2;
+const PRIMARY_BUTTON_MASK = St.ButtonMask.PRIMARY ?? St.ButtonMask.ONE;
+const MIDDLE_BUTTON_MASK = St.ButtonMask.MIDDLE ?? St.ButtonMask.TWO;
 
 function clamp(value, min = 0, max = 1) {
     return Math.max(min, Math.min(max, value));
@@ -45,7 +49,7 @@ class VolumeRow extends PopupMenu.PopupBaseMenuItem {
             can_focus: true,
             reactive: true,
             track_hover: true,
-            button_mask: St.ButtonMask.ONE | St.ButtonMask.TWO,
+            button_mask: PRIMARY_BUTTON_MASK | MIDDLE_BUTTON_MASK,
             accessible_name: `Mute ${params.name}`,
             style_class: 'app-volume-icon-button',
             child: new St.Icon(iconParams),
@@ -145,38 +149,85 @@ class MixerButton extends PanelMenu.Button {
         this._onAppVolumeChanged = onAppVolumeChanged;
         this._master = null;
         this._maximum = 1;
+        this._middleClickGesture = null;
+        this._scrollController = null;
 
-        // GNOME 50 moved panel clicks to ClickGesture; GNOME 49 has no member.
-        if (this._clickGesture?.set_required_button)
-            this._clickGesture.set_required_button(1);
+        // GNOME 50+ uses a ClickGesture internally. Restrict the built-in
+        // menu gesture to primary click, then handle middle-click mute with a
+        // second public gesture. GNOME 49 falls back to vfunc_event().
+        if (this._clickGesture?.set_required_button &&
+            typeof Clutter.ClickGesture === 'function') {
+            this._clickGesture.set_required_button(PRIMARY_BUTTON);
+            this._middleClickGesture = new Clutter.ClickGesture();
+            this._middleClickGesture.set_required_button(MIDDLE_BUTTON);
+            this._middleClickGesture.set_recognize_on_press(true);
+            this._middleClickGesture.connect('recognize', () => {
+                toggleStreamMute(this._master, this._control);
+            });
+            this.add_action(this._middleClickGesture);
+        }
 
         this._panelIcon = new St.Icon({
             icon_name: 'audio-volume-high-symbolic',
             style_class: 'system-status-icon',
         });
         this.add_child(this._panelIcon);
-        this.connect('scroll-event', (_actor, event) => this._scroll(event));
+        this._setupScrollHandling();
+    }
+
+    _setupScrollHandling() {
+        // GNOME 51 uses ScrollController for actor scrolling. Keep the legacy
+        // event path for GNOME 49/50 so one build supports all three.
+        if (typeof Clutter.ScrollController === 'function' &&
+            Clutter.ScrollControllerFlags) {
+            this._scrollController = new Clutter.ScrollController({
+                flags: Clutter.ScrollControllerFlags.SCROLL_VERTICAL |
+                    Clutter.ScrollControllerFlags.PHYSICAL_DIRECTION,
+            });
+            this._scrollController.connect(
+                'scroll',
+                (_controller, _sprite, _source, _dx, dy) => {
+                    this._adjustMasterVolume(-dy);
+                }
+            );
+            this.add_action(this._scrollController);
+        } else {
+            this.connect('scroll-event', (_actor, event) => this._legacyScroll(event));
+        }
     }
 
     vfunc_event(event) {
-        if (event.type() === Clutter.EventType.BUTTON_PRESS) {
+        if (!this._middleClickGesture &&
+            event.type() === Clutter.EventType.BUTTON_PRESS) {
             const button = event.get_button();
-            if (button === 2) {
+            if (button === MIDDLE_BUTTON) {
                 toggleStreamMute(this._master, this._control);
                 return Clutter.EVENT_STOP;
             }
-            if (!this._clickGesture && button === 1) {
+            if (!this._clickGesture && button === PRIMARY_BUTTON) {
                 this.menu.toggle();
                 return Clutter.EVENT_STOP;
             }
-        } else if (event.type() === Clutter.EventType.TOUCH_BEGIN && !this._clickGesture) {
+        } else if (event.type() === Clutter.EventType.TOUCH_BEGIN &&
+            !this._clickGesture) {
             this.menu.toggle();
             return Clutter.EVENT_STOP;
         }
         return Clutter.EVENT_PROPAGATE;
     }
 
-    _scroll(event) {
+    _adjustMasterVolume(steps) {
+        if (Math.abs(steps) <= 0.01 || !this._master)
+            return false;
+
+        const current = streamVolume(this._master) / normalVolume(this._control);
+        setStreamLevel(this._master,
+            clamp(current + steps * MASTER_SCROLL_STEP, 0, this._maximum),
+            this._control);
+        return true;
+    }
+
+    _legacyScroll(event) {
         if (event.get_flags() & Clutter.EventFlags.FLAG_POINTER_EMULATED)
             return Clutter.EVENT_PROPAGATE;
 
@@ -193,14 +244,9 @@ class MixerButton extends PanelMenu.Button {
                 steps *= -1;
         }
 
-        if (Math.abs(steps) <= 0.01 || !this._master)
-            return Clutter.EVENT_PROPAGATE;
-
-        const current = streamVolume(this._master) / normalVolume(this._control);
-        setStreamLevel(this._master,
-            clamp(current + steps * MASTER_SCROLL_STEP, 0, this._maximum),
-            this._control);
-        return Clutter.EVENT_STOP;
+        return this._adjustMasterVolume(steps)
+            ? Clutter.EVENT_STOP
+            : Clutter.EVENT_PROPAGATE;
     }
 
     _setMaster(stream) {
@@ -270,6 +316,8 @@ class MixerButton extends PanelMenu.Button {
     destroy() {
         this._master?.disconnectObject(this);
         this._master = null;
+        this._middleClickGesture = null;
+        this._scrollController = null;
         this._onAppVolumeChanged = null;
         super.destroy();
     }
