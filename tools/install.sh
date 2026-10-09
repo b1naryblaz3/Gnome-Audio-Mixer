@@ -23,5 +23,5 @@ mkdir -p "$EXTENSION_DIR/schemas"
 cp "$STAGING_DIR"/*.js "$STAGING_DIR/stylesheet.css" "$STAGING_DIR/metadata.json" "$EXTENSION_DIR/"
 cp "$STAGING_DIR"/schemas/* "$EXTENSION_DIR/schemas/"
 gnome-extensions enable "$EXTENSION_UUID" 2>/dev/null || true
-echo "Installed v5.1.0. Log out and back in to reload GNOME Shell."
-echo "Then choose outputs 1 and 2 under Quick-switch presets."
+echo "Installed App Volume Panel Mixer. Log out and back in to reload GNOME Shell."
+echo "Then choose outputs under Preset 1 and Preset 2."

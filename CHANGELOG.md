@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.0.0 - 2026-10-09
+
+First stable public release, based on the tested 5.1.1 development build.
+
+- Grouped per-application volume controls with remembered levels and mute toggles.
+- Master output and microphone volume controls.
+- Two remembered output presets with direct menu selectors, right-click switching and a 1 / 2 panel indicator.
+- Scroll master volume and middle-click master mute from the panel icon.
+- GNOME Shell 49–51 compatibility and PipeWire/PulseAudio metadata support.
+- Standard installable ZIP with compiled settings schema.
+- Public version numbering starts at 1.0.0; the internal GNOME update counter increases to 512.
+
 ## 5.1.1 - Preset selector fix
 
 - Moved preset selectors to the top-level mixer menu. GNOME tracks one open submenu per main menu, so nested selectors closed their parent and could not be used.

@@ -2,7 +2,9 @@
 
 A compact GNOME Shell top-panel mixer for per-application audio control.
 
-Current development version: **v5.1.1**, with GNOME Shell 51 compatibility and output quick switching.
+Stable release: **v1.0.0**, with GNOME Shell 49–51 support and output quick switching.
+
+[Download the latest release](https://github.com/b1naryblaz3/Gnome-Audio-Mixer/releases/latest)
 
 ![GNOME App Volume Panel Mixer screenshot](https://raw.githubusercontent.com/b1naryblaz3/Gnome-Audio-Mixer/main/docs/screenshot.png)
 
@@ -25,7 +27,7 @@ ChatGPT assisted with architecture, implementation, debugging, API review, and c
 - Click an application icon to mute/unmute it
 - Scroll over the panel icon to adjust master output volume
 - Middle-click the panel icon to mute/unmute master output
-- Right-click the panel icon to flip between two remembered audio outputs
+- One-click output switcher: right-click the panel icon to flip between two remembered audio outputs, or click Switch output at the top of the popup
 - Small **1 / 2** indicator beside the panel icon shows the active preset
 - Quick-switch action and preset selectors at the top of the popup
 - No continuous polling or live VU meters
@@ -36,7 +38,7 @@ ChatGPT assisted with architecture, implementation, debugging, API review, and c
 - GNOME Shell 50
 - GNOME Shell 51
 
-The original stable baseline was runtime-tested on GNOME Shell 50.4. The GNOME 51 port follows the official GNOME 51 extension migration guidance and GNOME Shell 51.0 source APIs, but still needs a real GNOME 51 runtime test before the compatibility branch is merged.
+The baseline was runtime-tested on GNOME Shell 50.4. The output-switching release candidate was also confirmed working on the maintainer's GNOME / CachyOS Wayland system. Compatibility code supports GNOME 49–51; this is not a claim that every combination of Shell version and audio hardware has been tested.
 
 ## GNOME 51 port
 
@@ -74,7 +76,23 @@ asynchronously when audio stream topology changes. If `pactl` is unavailable or 
 
 On Arch/CachyOS, `pactl` is provided by the `libpulse` package and works with `pipewire-pulse`.
 
-## Install or update directly from GitHub
+## Install from a release ZIP
+
+Download **app-volume-panel-v4@appvol.local.zip** from the [latest release](https://github.com/b1naryblaz3/Gnome-Audio-Mixer/releases/latest), then run:
+
+```bash
+gnome-extensions install --force ./app-volume-panel-v4@appvol.local.zip
+```
+
+Log out and back in to reload the extension, then enable it if needed:
+
+```bash
+gnome-extensions enable app-volume-panel-v4@appvol.local
+```
+
+Existing remembered volumes and output presets are preserved. The release ZIP includes the compiled settings schema; no extraction or install script is needed.
+
+## Install or update from source
 
 Download a fresh source checkout and run the installer:
 
@@ -85,16 +103,6 @@ bash tools/install.sh
 ```
 
 The installer compiles the settings schema before copying the extension into your user extension directory. Existing remembered volumes and output presets are kept. Log out and back in, then select outputs 1 and 2 under **Preset 1** and **Preset 2**.
-
-## Install from a packaged ZIP
-
-```bash
-gnome-extensions disable app-volume-panel-v4@appvol.local 2>/dev/null || true
-gnome-extensions install ./app-volume-panel-v4@appvol.local.zip --force
-gnome-extensions enable app-volume-panel-v4@appvol.local
-```
-
-On Wayland, changed JavaScript under an already-loaded UUID may require logging out and back in for a guaranteed clean reload.
 
 ## Install from source for development
 
@@ -130,6 +138,16 @@ schemas/         GSettings schema for remembered app volumes
 ```
 
 ## Development notes
+
+Public releases now use semantic versions starting at **1.0.0**. The earlier 4.x/5.x names were development iterations. GNOME's separate integer `version` continues increasing (512 for 1.0.0) so existing installations recognise this as an update.
+
+To build an installable ZIP:
+
+```bash
+bash tools/package.sh
+```
+
+This requires `glib-compile-schemas` and Python 3. The package is written to `dist/` and contains only extension files and the compiled settings schema.
 
 The current UUID remains:
 
