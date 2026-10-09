@@ -2,60 +2,109 @@ name: Publish extension release
 
 on:
   push:
-    tags:
-      - 'v*'
+    branches: [main]
+    paths:
+      - metadata.json
+      - .github/workflows/release.yml
+    tags: ['v*']
   release:
     types: [published]
   workflow_dispatch:
-    inputs:
-      tag:
-        description: 'Existing release tag, for example v1.0.1'
-        required: true
-        type: string
 
 permissions:
   contents: write
 
 concurrency:
-  group: release-${{ github.event.release.tag_name || inputs.tag || github.ref_name }}
+  group: extension-release
   cancel-in-progress: false
 
 jobs:
   release:
     runs-on: ubuntu-latest
     env:
-      RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag || github.ref_name }}
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
+      REQUESTED_TAG: ${{ github.event.release.tag_name || (startsWith(github.ref, 'refs/tags/') && github.ref_name) || '' }}
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.release.tag_name || inputs.tag || github.ref_name }}
+          ref: ${{ github.event.release.tag_name || github.sha }}
+          fetch-depth: 0
           persist-credentials: false
-      - name: Validate version
+      - name: Check release version
+        id: version
         run: |
           python3 - <<'PY'
-          import json, os, re
-          tag = os.environ['RELEASE_TAG']
-          if not re.fullmatch(r'v[0-9]+\.[0-9]+\.[0-9]+', tag):
-              raise SystemExit('Use a stable version tag such as v1.0.1')
-          metadata = json.load(open('metadata.json'))
-          if metadata.get('version-name') != tag[1:]:
+          import json, os, re, subprocess
+          from pathlib import Path
+          from urllib.request import Request, urlopen
+          from urllib.error import HTTPError
+
+          metadata = json.loads(Path('metadata.json').read_text())
+          version = metadata.get('version-name', '')
+          if not re.fullmatch(r'[0-9]+\.[0-9]+\.[0-9]+', version):
+              raise SystemExit('Stable releases require a version such as 1.1.0')
+          tag = 'v' + version
+          requested = os.environ.get('REQUESTED_TAG', '')
+          if requested and requested != tag:
               raise SystemExit('Tag must match metadata.json version-name')
+          request = Request(
+              f"https://api.github.com/repos/{os.environ['GH_REPO']}/releases/tags/{tag}",
+              headers={'Authorization': 'Bearer ' + os.environ['GH_TOKEN'],
+                       'Accept': 'application/vnd.github+json'})
+          try:
+              with urlopen(request) as response:
+                  release = json.load(response)
+          except HTTPError as error:
+              if error.code != 404:
+                  raise
+              release = None
+
+          asset = f'gnome-audio-mixer-{tag}.zip'
+          # Already completed versions do not publish again on ordinary merges.
+          complete = release and any(a['name'] == asset for a in release['assets'])
+          skip = bool(complete and not requested)
+          if not skip:
+              ref = subprocess.run(['git', 'rev-parse', '--verify', f'refs/tags/{tag}^{{commit}}'],
+                                   capture_output=True, text=True)
+              head = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
+              if ref.returncode == 0 and ref.stdout.strip() != head:
+                  raise SystemExit('Existing tag points to different code; refusing to overwrite it')
+              changelog = Path('CHANGELOG.md').read_text()
+              match = re.search(r'^## ' + re.escape(version) +
+                                r'[^\n]*\n(.*?)(?=^## |\Z)', changelog, re.M | re.S)
+              if not match:
+                  raise SystemExit('Add release notes to CHANGELOG.md before publishing')
+              notes = match.group(1).strip()
+              notes += '\n\n### Installation\n\nDownload the attached ZIP, then run:\n\n'
+              notes += f'```bash\ngnome-extensions install --force ./{asset}\n```\n\n'
+              notes += 'Log out and back in. Existing volumes and output presets are preserved.\n'
+              Path('release-notes.md').write_text(notes)
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+              output.write(f'tag={tag}\nskip={str(skip).lower()}\nexists={str(bool(release)).lower()}\n')
+          print('Already released; skipping.' if skip else f'Preparing {tag}')
           PY
       - name: Install packaging dependency
+        if: steps.version.outputs.skip != 'true'
         run: |
           sudo apt-get update
           sudo apt-get install --yes libglib2.0-bin
       - name: Build installable ZIP
+        if: steps.version.outputs.skip != 'true'
+        env:
+          RELEASE_TAG: ${{ steps.version.outputs.tag }}
         run: |
           bash tools/package.sh
           mv dist/app-volume-panel-v4@appvol.local.zip "dist/gnome-audio-mixer-${RELEASE_TAG}.zip"
       - name: Publish release and attach ZIP
+        if: steps.version.outputs.skip != 'true'
+        env:
+          RELEASE_TAG: ${{ steps.version.outputs.tag }}
+          RELEASE_EXISTS: ${{ steps.version.outputs.exists }}
         run: |
-          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+          if [ "$RELEASE_EXISTS" = "true" ]; then
             gh release upload "$RELEASE_TAG" "dist/gnome-audio-mixer-${RELEASE_TAG}.zip" --clobber
           else
             gh release create "$RELEASE_TAG" "dist/gnome-audio-mixer-${RELEASE_TAG}.zip" \
-              --verify-tag --title "GNOME Audio Mixer ${RELEASE_TAG#v}" --generate-notes
+              --target "$GITHUB_SHA" --title "GNOME Audio Mixer ${RELEASE_TAG#v}" --notes-file release-notes.md
           fi
