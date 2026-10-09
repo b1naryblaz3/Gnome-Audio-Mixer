@@ -4,8 +4,9 @@
   "description": "Compact grouped per-application volume controls in the GNOME top panel.",
   "shell-version": [
     "49",
-    "50"
+    "50",
+    "51"
   ],
   "settings-schema": "org.gnome.shell.extensions.app-volume-panel",
-  "version": 422
+  "version": 500
 }
