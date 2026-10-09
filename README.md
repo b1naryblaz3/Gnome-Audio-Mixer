@@ -27,9 +27,9 @@ ChatGPT assisted with architecture, implementation, debugging, API review, and c
 - Click an application icon to mute/unmute it
 - Scroll over the panel icon to adjust master output volume
 - Middle-click the panel icon to mute/unmute master output
-- One-click output switcher: right-click the panel icon to flip between two remembered audio outputs, or click Switch output at the top of the popup
+- One-click output switcher: right-click the panel icon to flip between two remembered audio outputs
 - Small **1 / 2** indicator beside the panel icon shows the active preset
-- Quick-switch action and preset selectors at the top of the popup
+- Collapsible **Output switcher settings** at the bottom; expands automatically until both presets are configured
 - No continuous polling or live VU meters
 
 ## Supported GNOME versions
@@ -52,13 +52,13 @@ The GNOME 51 compatibility update:
 
 ## Quick output switch
 
-1. Left-click the panel icon. **Preset 1** and **Preset 2** appear directly below the switch action.
+1. Left-click the panel icon and expand **Output switcher settings** at the bottom. It opens automatically until both presets are configured.
 2. Choose an output under **Preset 1** and a different output under **Preset 2** (for example, speakers and a USB headset).
-3. **Right-click the panel icon** to flip between them, or use **Switch output** at the top of the popup.
+3. **Right-click the panel icon** to flip between them.
 
 The small number beside the icon shows the active preset. A dash means neither selected preset is active, or presets have not been configured. If another output is active, switching selects preset 1 first.
 
-Selections survive logout and reboot. A disconnected device keeps its preset and becomes usable again when it reconnects with the same sink name. The switch is disabled when its target is unavailable; right-click shows a notification. Selecting the same device in the other slot clears its previous slot.
+Selections survive logout and reboot. A disconnected device keeps its preset and becomes usable again when it reconnects with the same sink name. Right-click shows a notification when its target is unavailable. Selecting the same device in the other slot clears its previous slot.
 
 Switching uses GNOME's normal output-device action. Applications with explicitly pinned audio routing may retain their own routing. Presets select outputs (sinks), not microphone inputs or separate ports on the same sound card.
 
