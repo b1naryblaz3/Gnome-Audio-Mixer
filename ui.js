@@ -317,17 +317,17 @@ class MixerButton extends PanelMenu.Button {
         switchItem.connect('activate', () => this._onSwitchOutput());
         this.menu.addMenuItem(switchItem);
 
-        const setup = new PopupMenu.PopupSubMenuMenuItem('Quick-switch presets');
-        this.menu.addMenuItem(setup);
+        // GNOME tracks one open submenu per top-level menu. Keep these
+        // selectors as siblings: nesting them would close their parent.
         for (const slot of [0, 1]) {
             const preset = presets[slot];
             const status = preset.active ? ' (active)'
                 : preset.name && !preset.available ? ' (disconnected)' : '';
             const picker = new PopupMenu.PopupSubMenuMenuItem(
-                `${slot + 1}: ${preset.label}${status}`);
+                `Preset ${slot + 1}: ${preset.label}${status}`);
             picker.label.clutter_text.ellipsize = Pango.EllipsizeMode.END;
             picker.label.add_style_class_name('app-volume-output-label');
-            setup.menu.addMenuItem(picker);
+            this.menu.addMenuItem(picker);
             for (const output of outputs) {
                 const item = new PopupMenu.PopupMenuItem(output.label);
                 item.label.clutter_text.ellipsize = Pango.EllipsizeMode.END;
@@ -397,3 +397,4 @@ class MixerButton extends PanelMenu.Button {
         super.destroy();
     }
 });
+

@@ -1,5 +1,11 @@
 # Changelog
 
+## 5.1.1 - Preset selector fix
+
+- Moved preset selectors to the top-level mixer menu. GNOME tracks one open submenu per main menu, so nested selectors closed their parent and could not be used.
+- Added menu layout and selection callback regression checks.
+
+
 ## 5.1.0 - Output quick switch
 
 - Added two persistent output presets, configurable from the top of the mixer popup.

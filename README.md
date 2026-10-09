@@ -2,7 +2,7 @@
 
 A compact GNOME Shell top-panel mixer for per-application audio control.
 
-Current development version: **v5.1.0**, with GNOME Shell 51 compatibility and output quick switching.
+Current development version: **v5.1.1**, with GNOME Shell 51 compatibility and output quick switching.
 
 ![GNOME App Volume Panel Mixer screenshot](https://raw.githubusercontent.com/b1naryblaz3/Gnome-Audio-Mixer/main/docs/screenshot.png)
 
@@ -50,8 +50,8 @@ The GNOME 51 compatibility update:
 
 ## Quick output switch
 
-1. Left-click the panel icon and open **Quick-switch presets**.
-2. Choose an output under **1** and a different output under **2** (for example, speakers and a USB headset).
+1. Left-click the panel icon. **Preset 1** and **Preset 2** appear directly below the switch action.
+2. Choose an output under **Preset 1** and a different output under **Preset 2** (for example, speakers and a USB headset).
 3. **Right-click the panel icon** to flip between them, or use **Switch output** at the top of the popup.
 
 The small number beside the icon shows the active preset. A dash means neither selected preset is active, or presets have not been configured. If another output is active, switching selects preset 1 first.
@@ -84,7 +84,7 @@ cd Gnome-Audio-Mixer-update
 bash tools/install.sh
 ```
 
-The installer compiles the settings schema before copying the extension into your user extension directory. Existing remembered volumes and output presets are kept. Log out and back in, then select outputs 1 and 2 under **Quick-switch presets**.
+The installer compiles the settings schema before copying the extension into your user extension directory. Existing remembered volumes and output presets are kept. Log out and back in, then select outputs 1 and 2 under **Preset 1** and **Preset 2**.
 
 ## Install from a packaged ZIP
 

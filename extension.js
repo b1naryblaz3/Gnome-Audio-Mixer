@@ -15,7 +15,7 @@ export default class AppVolumePanelExtension extends Extension {
                 try {
                     if (!this._model.switchOutput())
                         Main.notify('App Volume Mixer',
-                            'Choose two connected outputs under Quick-switch presets.');
+                            'Choose two connected outputs under Preset 1 and Preset 2.');
                 } catch (error) {
                     console.warn(`App Volume Panel Mixer: output switch failed: ${error}`);
                     Main.notify('App Volume Mixer', 'Could not switch audio output.');
@@ -35,3 +35,4 @@ export default class AppVolumePanelExtension extends Extension {
         this._settings = null;
     }
 }
+
