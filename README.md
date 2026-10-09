@@ -2,7 +2,7 @@
 
 A compact GNOME Shell top-panel mixer for per-application audio control.
 
-Stable release: **v1.0.0**, with GNOME Shell 49–51 support and output quick switching.
+Stable release: **v1.1.0**, with GNOME Shell 49–51 support and output quick switching.
 
 [Download the latest release](https://github.com/b1naryblaz3/Gnome-Audio-Mixer/releases/latest)
 
@@ -78,10 +78,10 @@ On Arch/CachyOS, `pactl` is provided by the `libpulse` package and works with `p
 
 ## Install from a release ZIP
 
-Download **app-volume-panel-v4@appvol.local.zip** from the [latest release](https://github.com/b1naryblaz3/Gnome-Audio-Mixer/releases/latest), then run:
+Download **gnome-audio-mixer-v1.1.0.zip** from the [latest release](https://github.com/b1naryblaz3/Gnome-Audio-Mixer/releases/latest), then run:
 
 ```bash
-gnome-extensions install --force ./app-volume-panel-v4@appvol.local.zip
+gnome-extensions install --force ./gnome-audio-mixer-v1.1.0.zip
 ```
 
 Log out and back in to reload the extension, then enable it if needed:
