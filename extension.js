@@ -15,7 +15,7 @@ export default class AppVolumePanelExtension extends Extension {
                 try {
                     if (!this._model.switchOutput())
                         Main.notify('App Volume Mixer',
-                            'Choose two connected outputs under Preset 1 and Preset 2.');
+                            'Choose two connected outputs under Output switcher settings.');
                 } catch (error) {
                     console.warn(`App Volume Panel Mixer: output switch failed: ${error}`);
                     Main.notify('App Volume Mixer', 'Could not switch audio output.');
