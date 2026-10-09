@@ -305,29 +305,28 @@ class MixerButton extends PanelMenu.Button {
             this._panelIcon.icon_name = 'audio-volume-high-symbolic';
     }
 
-    _addQuickOutputs(outputs, {presets, targetSlot, canSwitch}) {
-        const target = presets[targetSlot];
+    _addQuickOutputs(outputs, {presets}, wasOpen) {
         const configured = presets.every(preset => preset.name);
-        const switchItem = new PopupMenu.PopupMenuItem(configured
-            ? `Switch output → ${target.label}${target.available ? '' : ' (disconnected)'}`
-            : 'Switch output — choose two presets below');
-        switchItem.label.clutter_text.ellipsize = Pango.EllipsizeMode.END;
-        switchItem.label.add_style_class_name('app-volume-output-label');
-        switchItem.setSensitive(canSwitch);
-        switchItem.connect('activate', () => this._onSwitchOutput());
-        this.menu.addMenuItem(switchItem);
+        const justConfigured = configured && this._presetsConfigured === false;
+        this._presetsConfigured = configured;
 
-        // GNOME tracks one open submenu per top-level menu. Keep these
-        // selectors as siblings: nesting them would close their parent.
+        this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
+        const settings = new PopupMenu.PopupSubMenuMenuItem('Output switcher settings');
+        this.menu.addMenuItem(settings);
+        this._presetSettings = settings;
+
+        // One submenu with flat choices: nested submenus close their parent.
         for (const slot of [0, 1]) {
             const preset = presets[slot];
             const status = preset.active ? ' (active)'
                 : preset.name && !preset.available ? ' (disconnected)' : '';
-            const picker = new PopupMenu.PopupSubMenuMenuItem(
-                `Preset ${slot + 1}: ${preset.label}${status}`);
-            picker.label.clutter_text.ellipsize = Pango.EllipsizeMode.END;
-            picker.label.add_style_class_name('app-volume-output-label');
-            this.menu.addMenuItem(picker);
+            const heading = new PopupMenu.PopupMenuItem(
+                `Preset ${slot + 1}: ${preset.label}${status}`,
+                {reactive: false, can_focus: false});
+            heading.label.clutter_text.ellipsize = Pango.EllipsizeMode.END;
+            heading.label.add_style_class_name('app-volume-output-label');
+            settings.menu.addMenuItem(heading);
+
             for (const output of outputs) {
                 const item = new PopupMenu.PopupMenuItem(output.label);
                 item.label.clutter_text.ellipsize = Pango.EllipsizeMode.END;
@@ -336,30 +335,35 @@ class MixerButton extends PanelMenu.Button {
                     ? PopupMenu.Ornament.CHECK : PopupMenu.Ornament.NONE);
                 item.connect('activate', () =>
                     this._onSelectOutputPreset(slot, output.name));
-                picker.menu.addMenuItem(item);
+                settings.menu.addMenuItem(item);
             }
             if (!outputs.length) {
-                picker.menu.addMenuItem(new PopupMenu.PopupMenuItem(
+                settings.menu.addMenuItem(new PopupMenu.PopupMenuItem(
                     'No outputs connected', {reactive: false, can_focus: false}));
             }
             const clear = new PopupMenu.PopupMenuItem('Clear preset');
             clear.setSensitive(Boolean(preset.name));
             clear.connect('activate', () => this._onSelectOutputPreset(slot, ''));
-            picker.menu.addMenuItem(clear);
+            settings.menu.addMenuItem(clear);
+            if (slot === 0)
+                settings.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
         }
-        this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
+
+        if (!configured || (wasOpen && !justConfigured))
+            settings.menu.open(false);
     }
 
     rebuild({sink, source, groups, maximum, outputs, quickOutputs}) {
         this._maximum = maximum;
         this._setMaster(sink);
+        const settingsWereOpen = this._presetSettings?.menu.isOpen ?? false;
+        this._presetSettings = null;
         this.menu.removeAll();
         const activeSlot = quickOutputs.presets.findIndex(preset => preset.active);
         this._presetLabel.text = activeSlot < 0 ? '–' : String(activeSlot + 1);
         this.accessible_name = activeSlot < 0
             ? 'App Volume Mixer. Right-click to switch output presets.'
             : `App Volume Mixer. Output ${activeSlot + 1}: ${quickOutputs.presets[activeSlot].label}. Right-click to switch output.`;
-        this._addQuickOutputs(outputs, quickOutputs);
 
         const addRow = params => this.menu.addMenuItem(new VolumeRow({
             control: this._control,
@@ -383,9 +387,11 @@ class MixerButton extends PanelMenu.Button {
                 can_focus: false,
             }));
         }
+        this._addQuickOutputs(outputs, quickOutputs, settingsWereOpen);
     }
 
     destroy() {
+        this._presetSettings = null;
         this._master?.disconnectObject(this);
         this._master = null;
         this._middleClickGesture = null;
