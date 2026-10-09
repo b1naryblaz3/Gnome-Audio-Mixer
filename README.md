@@ -1,179 +1,158 @@
-# GNOME App Volume Panel Mixer
+# GNOME Audio Mixer
 
-A compact GNOME Shell top-panel mixer for per-application audio control.
+A compact GNOME Shell panel mixer with per-application volume controls and one-click switching between two audio outputs.
 
-Stable release: **v1.1.0**, with GNOME Shell 49–51 support and output quick switching.
+**Stable release: v1.1.0** · GNOME Shell 49–51 · PipeWire / PulseAudio
 
 [Download the latest release](https://github.com/b1naryblaz3/Gnome-Audio-Mixer/releases/latest)
 
-![GNOME App Volume Panel Mixer screenshot](https://raw.githubusercontent.com/b1naryblaz3/Gnome-Audio-Mixer/main/docs/screenshot.png)
+![GNOME Audio Mixer — earlier output-switcher layout](docs/screenshot.png)
 
-## Development credits
+*This screenshot shows the earlier layout. In v1.1.0, preset setup is collapsed under **Output switcher settings** at the bottom of the menu.*
 
-This project was **vibe-coded collaboratively by [b1naryblaz3](https://github.com/b1naryblaz3) and ChatGPT (OpenAI)**.
+## Install or update
 
-ChatGPT assisted with architecture, implementation, debugging, API review, and code review. b1naryblaz3 directed the project, chose the product behaviour, and tested it on a real GNOME Shell / CachyOS Wayland system.
-
-## Features
-
-- Native GNOME top-panel indicator and popup
-- Master output and microphone input sliders
-- Per-application output volume sliders
-- Groups multiple audio streams from the same application into one row
-- Better Electron/browser identification using PipeWire/Pulse metadata
-- Discord streams such as `Playback` and `playStream` are grouped under Discord when `application.process.binary` identifies Discord
-- Remembers per-application volume using GSettings
-- New streams inherit the application's current volume
-- Click an application icon to mute/unmute it
-- Scroll over the panel icon to adjust master output volume
-- Middle-click the panel icon to mute/unmute master output
-- One-click output switcher: right-click the panel icon to flip between two remembered audio outputs
-- Small **1 / 2** indicator beside the panel icon shows the active preset
-- Collapsible **Output switcher settings** at the bottom; expands automatically until both presets are configured
-- No continuous polling or live VU meters
-
-## Supported GNOME versions
-
-- GNOME Shell 49
-- GNOME Shell 50
-- GNOME Shell 51
-
-The baseline was runtime-tested on GNOME Shell 50.4. The output-switching release candidate was also confirmed working on the maintainer's GNOME / CachyOS Wayland system. Compatibility code supports GNOME 49–51; this is not a claim that every combination of Shell version and audio hardware has been tested.
-
-## GNOME 51 port
-
-The GNOME 51 compatibility update:
-
-- accepts the new `St.ButtonMask.PRIMARY` and `St.ButtonMask.MIDDLE` names, with fallbacks for older Shell releases;
-- uses `Clutter.ScrollController` for panel-icon volume scrolling on GNOME 51;
-- retains the legacy scroll-event path on GNOME 49/50;
-- handles middle-click mute through a dedicated `Clutter.ClickGesture` on GNOME 50/51;
-- keeps the same UUID and GSettings schema, so remembered application volumes continue to work.
-
-## Quick output switch
-
-1. Left-click the panel icon and expand **Output switcher settings** at the bottom. It opens automatically until both presets are configured.
-2. Choose an output under **Preset 1** and a different output under **Preset 2** (for example, speakers and a USB headset).
-3. **Right-click the panel icon** to flip between them.
-
-The small number beside the icon shows the active preset. A dash means neither selected preset is active, or presets have not been configured. If another output is active, switching selects preset 1 first.
-
-Selections survive logout and reboot. A disconnected device keeps its preset and becomes usable again when it reconnects with the same sink name. Right-click shows a notification when its target is unavailable. Selecting the same device in the other slot clears its previous slot.
-
-Switching uses GNOME's normal output-device action. Applications with explicitly pinned audio routing may retain their own routing. Presets select outputs (sinks), not microphone inputs or separate ports on the same sound card.
-
-## Audio stack
-
-The extension uses GNOME Shell's existing GVC mixer control for volume operations.
-
-For improved application identification it also runs:
-
-```bash
-pactl -f json list sink-inputs
-```
-
-asynchronously when audio stream topology changes. If `pactl` is unavailable or times out, the mixer falls back to GVC-provided identity information.
-
-On Arch/CachyOS, `pactl` is provided by the `libpulse` package and works with `pipewire-pulse`.
-
-## Install from a release ZIP
-
-Download **gnome-audio-mixer-v1.1.0.zip** from the [latest release](https://github.com/b1naryblaz3/Gnome-Audio-Mixer/releases/latest), then run:
+Download **gnome-audio-mixer-v1.1.0.zip** from the latest release, then run:
 
 ```bash
 gnome-extensions install --force ./gnome-audio-mixer-v1.1.0.zip
 ```
 
-Log out and back in to reload the extension, then enable it if needed:
+**Log out and back in** to load the new code. Enable the extension if needed:
 
 ```bash
 gnome-extensions enable app-volume-panel-v4@appvol.local
 ```
 
-Existing remembered volumes and output presets are preserved. The release ZIP includes the compiled settings schema; no extraction or install script is needed.
+Use the ZIP attached to the release, rather than GitHub's automatically generated source archives. It includes the compiled settings schema and requires no extraction or installer script. Existing application volumes and output presets are preserved.
 
-## Install or update from source
+## Everyday controls
 
-Download a fresh source checkout and run the installer:
+| Action | Result |
+| --- | --- |
+| Left-click the panel icon | Open the mixer |
+| Right-click the panel icon | Switch between your two output presets |
+| Middle-click the panel icon | Mute or unmute the master output |
+| Scroll over the panel icon | Adjust master output volume |
+| Drag a volume slider | Adjust the output, microphone or application volume |
+| Click a row's audio/application icon | Mute or unmute that row |
+
+The **1 / 2** indicator beside the panel icon shows the active output preset. A dash means neither preset is active or setup is incomplete.
+
+## Set up output switching
+
+1. Left-click the panel icon.
+2. Expand **Output switcher settings** at the bottom. It opens automatically until both presets are configured.
+3. Choose a device in the **Preset 1** group and a different device in **Preset 2**, such as speakers and a USB headset.
+4. Right-click the panel icon to switch between them.
+
+Once both presets are selected, setup collapses so the volume controls take priority. There is no separate “Switch output” row in v1.1.0. You can expand settings whenever you need to change or clear a preset.
+
+Presets survive logout and reboot. Disconnected devices retain their selection and become usable again when they reconnect with the same sink name. Right-click shows a notification if the switch target is unavailable. Selecting a device already assigned to the other preset clears its previous assignment.
+
+If neither preset is active, switching selects preset 1 first. Presets select output devices (sinks), rather than microphone inputs or separate ports on the same sound card. Applications with explicitly pinned audio routing may retain their own routing.
+
+## Features
+
+- Master output, microphone input and per-application volume sliders.
+- Multiple streams from one application grouped into one row.
+- Remembered application volumes applied to new streams.
+- Improved browser, Discord and Electron identification using PipeWire/PulseAudio metadata.
+- Two remembered output presets with right-click switching.
+- Compact preset setup below the volume controls.
+- No continuous polling or live volume meters.
+
+## Compatibility and requirements
+
+Supported GNOME Shell versions: **49, 50 and 51**.
+
+The baseline was tested on GNOME Shell 50.4. The maintainer also tested the output switcher and compact v1.1.0 layout on a live GNOME / CachyOS Wayland system. Not every supported Shell version and audio-device combination has been tested.
+
+The extension reuses GNOME Shell's GVC mixer control. For better application identification, it asynchronously runs:
 
 ```bash
-git clone --depth 1 https://github.com/b1naryblaz3/Gnome-Audio-Mixer.git Gnome-Audio-Mixer-update
-cd Gnome-Audio-Mixer-update
+pactl -f json list sink-inputs
+```
+
+when audio topology changes. If `pactl` is missing or times out, identification falls back to GVC metadata. On Arch/CachyOS, `pactl` is supplied by `libpulse` and works with `pipewire-pulse`.
+
+## Build or install from source
+
+Source installation requires Python 3 and `glib-compile-schemas`, in addition to the normal GNOME audio stack.
+
+```bash
+git clone https://github.com/b1naryblaz3/Gnome-Audio-Mixer.git
+cd Gnome-Audio-Mixer
 bash tools/install.sh
 ```
 
-The installer compiles the settings schema before copying the extension into your user extension directory. Existing remembered volumes and output presets are kept. Log out and back in, then select outputs 1 and 2 under **Preset 1** and **Preset 2**.
+Log out and back in after installation. The installer preserves saved volumes and presets.
 
-## Install from source for development
-
-Clone the repository, then copy or symlink it into your user extension directory:
-
-```bash
-mkdir -p ~/.local/share/gnome-shell/extensions
-ln -s "$(pwd)" ~/.local/share/gnome-shell/extensions/app-volume-panel-v4@appvol.local
-```
-
-Compile the settings schema:
-
-```bash
-glib-compile-schemas schemas/
-```
-
-Then log out/in and enable the extension:
-
-```bash
-gnome-extensions enable app-volume-panel-v4@appvol.local
-```
-
-## Project structure
-
-```text
-extension.js     Extension lifecycle and panel registration
-audio.js         GVC/PipeWire stream model, grouping, metadata and persistence
-outputs.js       Quick-switch preset resolution
-ui.js            Panel indicator, popup rows and interaction
-stylesheet.css   Popup styling
-metadata.json    GNOME extension metadata
-schemas/         GSettings schema for remembered app volumes
-```
-
-## Development notes
-
-Public releases now use semantic versions starting at **1.0.0**. The earlier 4.x/5.x names were development iterations. GNOME's separate integer `version` continues increasing (512 for 1.0.0) so existing installations recognise this as an update.
-
-To build an installable ZIP:
+To build an installable extension ZIP:
 
 ```bash
 bash tools/package.sh
 ```
 
-This requires `glib-compile-schemas` and Python 3. The package is written to `dist/` and contains only extension files and the compiled settings schema.
+The local package is written to `dist/app-volume-panel-v4@appvol.local.zip`. GitHub releases use the simpler name `gnome-audio-mixer-vX.Y.Z.zip`.
 
-The current UUID remains:
+## Development and releases
+
+Develop changes on a branch, test the installable ZIP on GNOME, then merge the approved update into `main`.
+
+For a new stable release:
+
+1. Update `metadata.json` with the new semantic `version-name`.
+2. Increase GNOME's separate integer `version` counter.
+3. Add a matching version section to `CHANGELOG.md`.
+4. Merge after testing.
+
+The release workflow automatically creates the version tag, builds the extension ZIP and publishes it with notes from the changelog. An already completed release is skipped. Documentation-only changes do not trigger a new release. The workflow can also be run manually from GitHub Actions.
+
+Public semantic versions started at 1.0.0; the earlier 4.x/5.x versions were development iterations. Version 1.1.0 uses internal counter **513**.
+
+The extension UUID stays `app-volume-panel-v4@appvol.local` to preserve existing installations and settings.
+
+### Project structure
 
 ```text
-app-volume-panel-v4@appvol.local
+extension.js        Extension lifecycle and panel registration
+audio.js            Stream model, grouping, metadata and persistence
+outputs.js          Output preset resolution
+ui.js               Panel indicator, volume rows and preset setup
+stylesheet.css      Extension styling
+metadata.json       GNOME compatibility and version metadata
+schemas/            GSettings schema
+tools/              Installation and packaging scripts
+.github/workflows/  Release automation
 ```
-
-The UUID is intentionally unchanged for this port so an existing installation keeps its extension identity and remembered GSettings values. Before an extensions.gnome.org release, the project should decide whether to keep this UUID permanently or migrate once to a release UUID.
 
 ## Known limitations
 
-- Application identity sometimes depends on PulseAudio-compatible metadata exposed by PipeWire through `pactl`.
-- The popup is rebuilt when stream topology changes rather than updating every row in place.
-- GNOME 50/51 `PanelMenu.Button` currently exposes its built-in click gesture as an internal field. The compatibility shim only uses it to restrict menu opening to primary click, and this should be rechecked for each future Shell release.
+- Application identification depends partly on metadata supplied by applications.
+- The popup is rebuilt when stream topology changes.
+- GNOME 50/51 click handling uses an internal panel gesture field to restrict menu opening to left-click; it needs checking against future GNOME releases.
+- Blur My Shell can draw a rectangular blur layer behind rounded popup corners. Adjust or disable popup blur in that extension if you encounter this.
 
-## Diagnostics
+## Troubleshooting
 
-Show extension-related GNOME Shell errors from the last 15 minutes:
+Check recent GNOME Shell errors:
 
 ```bash
 journalctl --user --since "15 minutes ago" _COMM=gnome-shell -o cat | \
   grep -Ei 'app-volume-panel|JS ERROR|TypeError|ReferenceError|CRITICAL'
 ```
 
-Verify no `pactl` helper is left running while idle:
+No matching output means the filter found no matching messages.
+
+Check for leftover metadata helpers while the mixer is idle:
 
 ```bash
 pgrep -af pactl
 ```
+
+## Development credits
+
+Vibe-coded collaboratively by [b1naryblaz3](https://github.com/b1naryblaz3) and ChatGPT (OpenAI).
+
+b1naryblaz3 directs the project, chooses the behaviour and tests releases on a real GNOME / CachyOS Wayland system. ChatGPT assists with implementation, debugging, architecture and review.
