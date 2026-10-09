@@ -2,7 +2,7 @@
 
 A compact GNOME Shell top-panel mixer for per-application audio control.
 
-Current stable development baseline: **v4.2.2**.
+Current development version: **v5.0.0**, with GNOME Shell 51 compatibility.
 
 ![GNOME App Volume Panel Mixer screenshot](https://raw.githubusercontent.com/b1naryblaz3/Gnome-Audio-Mixer/main/docs/screenshot.png)
 
@@ -10,7 +10,7 @@ Current stable development baseline: **v4.2.2**.
 
 This project was **vibe-coded collaboratively by [b1naryblaz3](https://github.com/b1naryblaz3) and ChatGPT (OpenAI)**.
 
-ChatGPT assisted with architecture, implementation, debugging, API review, and code review. b1naryblaz3 directed the project, chose the product behaviour, and tested it on a real GNOME Shell 50.4 / CachyOS Wayland system.
+ChatGPT assisted with architecture, implementation, debugging, API review, and code review. b1naryblaz3 directed the project, chose the product behaviour, and tested it on a real GNOME Shell / CachyOS Wayland system.
 
 ## Features
 
@@ -31,8 +31,19 @@ ChatGPT assisted with architecture, implementation, debugging, API review, and c
 
 - GNOME Shell 49
 - GNOME Shell 50
+- GNOME Shell 51
 
-The current development system is GNOME Shell 50.4 on Wayland.
+The original stable baseline was runtime-tested on GNOME Shell 50.4. The GNOME 51 port follows the official GNOME 51 extension migration guidance and GNOME Shell 51.0 source APIs, but still needs a real GNOME 51 runtime test before the compatibility branch is merged.
+
+## GNOME 51 port
+
+The GNOME 51 compatibility update:
+
+- accepts the new `St.ButtonMask.PRIMARY` and `St.ButtonMask.MIDDLE` names, with fallbacks for older Shell releases;
+- uses `Clutter.ScrollController` for panel-icon volume scrolling on GNOME 51;
+- retains the legacy scroll-event path on GNOME 49/50;
+- handles middle-click mute through a dedicated `Clutter.ClickGesture` on GNOME 50/51;
+- keeps the same UUID and GSettings schema, so remembered application volumes continue to work.
 
 ## Audio stack
 
@@ -92,19 +103,19 @@ schemas/         GSettings schema for remembered app volumes
 
 ## Development notes
 
-The current UUID is still the development UUID:
+The current UUID remains:
 
 ```text
 app-volume-panel-v4@appvol.local
 ```
 
-Before a public extensions.gnome.org release, the project should move to a permanent release UUID and review GNOME 51 compatibility, particularly the panel middle-click implementation.
+The UUID is intentionally unchanged for this port so an existing installation keeps its extension identity and remembered GSettings values. Before an extensions.gnome.org release, the project should decide whether to keep this UUID permanently or migrate once to a release UUID.
 
 ## Known limitations
 
 - Application identity sometimes depends on PulseAudio-compatible metadata exposed by PipeWire through `pactl`.
 - The popup is rebuilt when stream topology changes rather than updating every row in place.
-- The GNOME 50 middle-click implementation touches an internal panel click gesture, so that area should be revalidated for future Shell releases.
+- GNOME 50/51 `PanelMenu.Button` currently exposes its built-in click gesture as an internal field. The compatibility shim only uses it to restrict menu opening to primary click, and this should be rechecked for each future Shell release.
 
 ## Diagnostics
 
