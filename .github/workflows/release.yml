@@ -1,0 +1,61 @@
+name: Publish extension release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing release tag, for example v1.0.1'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.event.release.tag_name || inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag || github.ref_name }}
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name || inputs.tag || github.ref_name }}
+          persist-credentials: false
+      - name: Validate version
+        run: |
+          python3 - <<'PY'
+          import json, os, re
+          tag = os.environ['RELEASE_TAG']
+          if not re.fullmatch(r'v[0-9]+\.[0-9]+\.[0-9]+', tag):
+              raise SystemExit('Use a stable version tag such as v1.0.1')
+          metadata = json.load(open('metadata.json'))
+          if metadata.get('version-name') != tag[1:]:
+              raise SystemExit('Tag must match metadata.json version-name')
+          PY
+      - name: Install packaging dependency
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes libglib2.0-bin
+      - name: Build installable ZIP
+        run: |
+          bash tools/package.sh
+          mv dist/app-volume-panel-v4@appvol.local.zip "dist/gnome-audio-mixer-${RELEASE_TAG}.zip"
+      - name: Publish release and attach ZIP
+        run: |
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" "dist/gnome-audio-mixer-${RELEASE_TAG}.zip" --clobber
+          else
+            gh release create "$RELEASE_TAG" "dist/gnome-audio-mixer-${RELEASE_TAG}.zip" \
+              --verify-tag --title "GNOME Audio Mixer ${RELEASE_TAG#v}" --generate-notes
+          fi
